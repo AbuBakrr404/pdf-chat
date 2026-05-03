@@ -30,7 +30,7 @@ if uploaded_file and "vectorstore" not in st.session_state:
         chunks = splitter.split_documents(docs)
 
         embeddings = HuggingFaceInferenceAPIEmbeddings(
-            api_key=os.getenv("HUGGINGFACEHUB_API_TOKEN"),
+            api_key=os.environ["HUGGINGFACEHUB_API_TOKEN"],
             model_name="sentence-transformers/all-MiniLM-L6-v2"
         )
         vectorstore = FAISS.from_documents(chunks, embeddings)
