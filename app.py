@@ -2,7 +2,7 @@ import streamlit as st
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
@@ -29,7 +29,10 @@ if uploaded_file and "vectorstore" not in st.session_state:
         splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
         chunks = splitter.split_documents(docs)
 
-        embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        embeddings = HuggingFaceInferenceAPIEmbeddings(
+            api_key=os.getenv("HUGGINGFACEHUB_API_TOKEN"),
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
+        )
         vectorstore = FAISS.from_documents(chunks, embeddings)
 
         st.session_state.vectorstore = vectorstore
@@ -40,7 +43,7 @@ if "vectorstore" in st.session_state:
     llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0)
     retriever = st.session_state.vectorstore.as_retriever(search_kwargs={"k": 3})
 
-    prompt = PromptTemplate.from_template("""Answer the question based only on the context below.
+    prompt = PromptTemplate.from_template("""Answer based only on the context below.
 
 Context: {context}
 
@@ -49,13 +52,11 @@ Question: {question}
 Answer:""")
 
     def format_docs(docs):
-        return "\n\n".join(doc.page_content for doc in docs)
+        return "\n\n".join(d.page_content for d in docs)
 
     chain = (
         {"context": retriever | format_docs, "question": RunnablePassthrough()}
-        | prompt
-        | llm
-        | StrOutputParser()
+        | prompt | llm | StrOutputParser()
     )
 
     question = st.text_input("Ask a question about your PDF:")
