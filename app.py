@@ -2,12 +2,13 @@ import streamlit as st
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
+from fastembed import TextEmbedding
+from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 import tempfile, os
 
 load_dotenv()
@@ -29,10 +30,7 @@ if uploaded_file and "vectorstore" not in st.session_state:
         splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
         chunks = splitter.split_documents(docs)
 
-        embeddings = HuggingFaceInferenceAPIEmbeddings(
-            api_key=os.environ["HUGGINGFACEHUB_API_TOKEN"],
-            model_name="sentence-transformers/all-MiniLM-L6-v2"
-        )
+        embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
         vectorstore = FAISS.from_documents(chunks, embeddings)
 
         st.session_state.vectorstore = vectorstore
